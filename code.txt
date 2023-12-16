@@ -1,0 +1,84 @@
+Core Code: 
+setwd("F:/R1")
+.libPaths()
+.libPaths("F:/R2")
+library(TwoSampleMR)
+df1<- read.csv(c('tHcy-SNP.csv')) 
+ 
+df1<-clump_data(
+  df1,
+  clump_kb = 1000,
+  clump_r2 = 0.01,
+  clump_p1 = 1,
+  clump_p2 = 1,
+  pop = "EUR"
+)#clump 
+exp_dat_clumped<-df1
+attach(exp_dat_clumped)
+exp_dat_clumped$SD<-se.exposure*44147^0.5 
+exp_dat_clumped$Rsquare<-2*(1-eaf.exposure)*eaf.exposure*((beta.exposure/exp_dat_clumped$SD)^2)
+exp_dat_clumped$Fvalue<-exp_dat_clumped$Rsquare*(44147-2)/(1-exp_dat_clumped$Rsquare)
+detach(exp_dat_clumped)
+View(exp_dat_clumped)
+#F values>10
+exp_dat_clumped1<-subset(exp_dat_clumped,Fvalue>10)
+df1<-exp_dat_clumped1
+#####
+library(dplyr)
+library(tidyverse)
+library(data.table)
+library(R.utils)
+dat1<-df1
+dat2<-read.delim( "high_blood_pressure_PhenoScanner_GWAS.tsv" )
+#dat3<-read.delim( "chronic_obstructive_pulmonary_disease_PhenoScanner_GWAS.tsv" )
+#dat4<-read.delim( "R7_manifest.tsv" )
+#dat5<-read.delim( "summary_stats_R8_manifest.tsv" )
+str(dat2)
+names(dat1)[5]<-"SNP"
+names(dat2)[1]<-"SNP"
+names(dat3)[1]<-"SNP"
+# 
+position <- Reduce(intersect,list(dat1$SNP,dat2$SNP))
+position <- Reduce(intersect,list(dat$SNP,dat2$SNP))
+position <- Reduce(intersect,list(dat1$SNP,dat3$SNP))
+# 
+length(unique(position)) 
+df2<- fread('finngen_R8_I9_THAORTANEUR.gz', header=T)
+str(df2)
+names(df2)[5]<-"SNP"
+df22<-df2
+df22$id.outcome<-c("AAsS")
+dat1<-merge(df1,df22,by="SNP")
+write.csv(dat1,file = "outcomeTAA217.csv")
+ 
+outcome_dat<-read_outcome_data(
+  filename = "outcomeTAA217.csv",
+  snps = df1$SNP,
+  sep = ",",
+  phenotype_col = "Phenotype",
+  snp_col = "SNP",
+  beta_col = "beta",
+  se_col = "sebeta",
+  eaf_col = "af_alt",
+  effect_allele_col = "alt",
+  other_allele_col = "ref",
+  pval_col = "pval",
+  
+)
+dat <- harmonise_data(exposure_dat=df1, outcome_dat)
+write.csv(dat,file = "outcomeTAA217.csv")
+mr_results <- mr(dat)
+mr_results
+#mr_method_list()
+mr_results1<-generate_odds_ratios(mr_results)
+mr_results1
+#write.csv(mr_results1,file = "mrout.csv")
+mr_heterogeneity(dat)# 
+mr_pleiotropy_test(dat)# 
+run_mr_presso(dat,NbDistribution = 10000)#mr_presso 
+res_single <- mr_singlesnp(dat)
+mr_funnel_plot(res_single)#
+mr_leaveoneout_plot(leaveoneout_results = mr_leaveoneout(dat))
+  write.csv(res_single,file = "liu1TAA217.csv")# 
+mr_scatter_plot(mr_results,dat) # 
+ 
